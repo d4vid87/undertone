@@ -4,6 +4,11 @@
 
 Undertone is an open-source alternative to cloud dictation tools like Wispr Flow. Press a hotkey, speak, and polished text lands wherever your cursor is — in any app. Transcription runs entirely on your machine (Whisper / Parakeet), and the optional AI cleanup layer runs against your own local LLM (Ollama, llama.cpp, LM Studio) or any OpenAI-compatible endpoint you choose.
 
+<p align="center">
+  <img src="screenshots/general.png" alt="Undertone general settings — transcribe and command mode hotkeys" width="49%">
+  <img src="screenshots/postprocess.png" alt="Undertone post-processing settings — local Ollama endpoint and model" width="49%">
+</p>
+
 Undertone is a fork of the excellent [Handy](https://github.com/cjpais/Handy) by CJ Pais, extended with the "smart" layer cloud dictation apps charge for:
 
 - **AI cleanup** — filler words removed, punctuation fixed, numbers formatted, using a local LLM. Fully optional: without a configured LLM you get raw Whisper output.
