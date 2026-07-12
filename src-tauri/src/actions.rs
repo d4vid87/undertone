@@ -52,6 +52,7 @@ pub trait ShortcutAction: Send + Sync {
 // Transcribe Action
 struct TranscribeAction {
     post_process: bool,
+    command_mode: bool,
 }
 
 /// Field name for structured output JSON schema
@@ -137,7 +138,7 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
         }
     };
 
-    let prompt = match settings
+    let mut prompt = match settings
         .post_process_prompts
         .iter()
         .find(|prompt| prompt.id == selected_prompt_id)
@@ -155,6 +156,13 @@ async fn post_process_transcription(settings: &AppSettings, transcription: &str)
     if prompt.trim().is_empty() {
         debug!("Post-processing skipped because the selected prompt is empty");
         return None;
+    }
+
+    // Tones: append an app-specific style hint to the prompt (no-op when
+    // disabled, no rules match, or active-window detection is unavailable).
+    if let Some(hint) = crate::tones::tone_hint(settings) {
+        prompt.push_str("\n\n");
+        prompt.push_str(&hint);
     }
 
     debug!(
@@ -414,6 +422,33 @@ fn resolve_effective_language(app: &AppHandle, settings: &AppSettings) -> String
     }
 }
 
+/// Command mode routes the transcription through the selected-text edit flow;
+/// everything else goes through the normal output pipeline. Falls back to
+/// normal processing when there is no selection or the LLM call fails, so a
+/// command-mode press never swallows the user's speech.
+pub(crate) async fn process_transcription_with_mode(
+    app: &AppHandle,
+    transcription: &str,
+    post_process: bool,
+    command_mode: bool,
+) -> ProcessedTranscription {
+    if command_mode {
+        if let Some(selection) = crate::command_mode::take_captured_selection() {
+            let settings = get_settings(app);
+            if let Some(edited) =
+                crate::command_mode::apply_command(&settings, &selection, transcription).await
+            {
+                return ProcessedTranscription {
+                    final_text: edited,
+                    post_processed_text: None,
+                    post_process_prompt: None,
+                };
+            }
+        }
+    }
+    process_transcription_output(app, transcription, post_process).await
+}
+
 pub(crate) async fn process_transcription_output(
     app: &AppHandle,
     transcription: &str,
@@ -464,6 +499,12 @@ impl ShortcutAction for TranscribeAction {
     fn start(&self, app: &AppHandle, binding_id: &str, _shortcut_str: &str) {
         let start_time = Instant::now();
         debug!("TranscribeAction::start called for binding: {}", binding_id);
+
+        // Command mode: snapshot the active selection before recording starts,
+        // while the target window still has focus and its selection intact.
+        if self.command_mode {
+            crate::command_mode::capture_selection(app);
+        }
 
         // Load model in the background
         let tm = app.state::<Arc<TranscriptionManager>>();
@@ -645,6 +686,7 @@ impl ShortcutAction for TranscribeAction {
 
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
+        let command_mode = self.command_mode;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -751,7 +793,12 @@ impl ShortcutAction for TranscribeAction {
                                 }
                             }
                             let Some(processed) = complete_unless_cancelled(
-                                process_transcription_output(&ah, &transcription, post_process),
+                                process_transcription_with_mode(
+                                    &ah,
+                                    &transcription,
+                                    post_process,
+                                    command_mode,
+                                ),
                                 || rm.was_cancelled_since(cancel_generation),
                             )
                             .await
@@ -908,11 +955,22 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         "transcribe".to_string(),
         Arc::new(TranscribeAction {
             post_process: false,
+            command_mode: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "transcribe_with_post_process".to_string(),
-        Arc::new(TranscribeAction { post_process: true }) as Arc<dyn ShortcutAction>,
+        Arc::new(TranscribeAction {
+            post_process: true,
+            command_mode: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "command_mode".to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            command_mode: true,
+        }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
         "cancel".to_string(),

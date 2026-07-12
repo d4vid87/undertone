@@ -6,6 +6,7 @@ pub mod audio_toolkit;
 mod catalog;
 pub mod cli;
 mod clipboard;
+mod command_mode;
 mod commands;
 mod helpers;
 mod input;
@@ -16,6 +17,7 @@ pub mod portable;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod tones;
 mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
@@ -181,6 +183,24 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     app_handle.manage(transcription_manager.clone());
     app_handle.manage(history_manager.clone());
     app_handle.manage(tray::CurrentTrayIconState::new());
+
+    // Best-effort Enigo init at startup so paste works even if the frontend
+    // never runs (hidden start, CLI-triggered dictation). macOS keeps the
+    // frontend-driven flow — Enigo init there prompts for accessibility
+    // permissions, which must happen after onboarding explains it.
+    #[cfg(not(target_os = "macos"))]
+    if app_handle.try_state::<input::EnigoState>().is_none() {
+        match input::EnigoState::new() {
+            Ok(state) => {
+                app_handle.manage(state);
+                log::info!("Enigo initialized at startup");
+            }
+            Err(e) => log::warn!(
+                "Enigo startup init failed (will retry from frontend): {}",
+                e
+            ),
+        }
+    }
 
     // Note: Shortcuts are NOT initialized here.
     // The frontend is responsible for calling the `initialize_shortcuts` command

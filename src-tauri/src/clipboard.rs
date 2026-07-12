@@ -607,6 +607,22 @@ pub fn paste(text: String, app_handle: AppHandle) -> Result<(), String> {
         paste_method, paste_delay_ms, paste_delay_after_ms
     );
 
+    // On Linux, native typing tools (ydotool/dotool/wtype/xdotool) don't need
+    // Enigo at all — try them before requiring the Enigo state, so paste works
+    // on Wayland even when Enigo failed to initialize.
+    #[cfg(target_os = "linux")]
+    if paste_method == PasteMethod::Direct && app_handle.try_state::<EnigoState>().is_none() {
+        if try_direct_typing_linux(&text, settings.typing_tool)? {
+            if settings.clipboard_handling == ClipboardHandling::CopyToClipboard {
+                let clipboard = app_handle.clipboard();
+                clipboard
+                    .write_text(&text)
+                    .map_err(|e| format!("Failed to copy to clipboard: {}", e))?;
+            }
+            return Ok(());
+        }
+    }
+
     // Get the managed Enigo instance
     let enigo_state = app_handle
         .try_state::<EnigoState>()

@@ -93,6 +93,14 @@ pub struct LLMPrompt {
     pub prompt: String,
 }
 
+/// Tone rule: when the active app's class name contains `app_pattern`
+/// (case-insensitive), `style` is injected into the post-process prompt.
+#[derive(Serialize, Deserialize, Debug, Clone, Type)]
+pub struct ToneRule {
+    pub app_pattern: String,
+    pub style: String,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, Type)]
 pub struct PostProcessProvider {
     pub id: String,
@@ -464,6 +472,31 @@ pub struct AppSettings {
     /// `overlay_position` (position `none` → style `None`).
     #[serde(default = "default_overlay_style")]
     pub overlay_style: OverlayStyle,
+    #[serde(default = "default_tones_enabled")]
+    pub tones_enabled: bool,
+    #[serde(default = "default_tones")]
+    pub tones: Vec<ToneRule>,
+}
+
+fn default_tones_enabled() -> bool {
+    true
+}
+
+fn default_tones() -> Vec<ToneRule> {
+    vec![
+        ToneRule {
+            app_pattern: "slack".to_string(),
+            style: "casual, friendly chat message".to_string(),
+        },
+        ToneRule {
+            app_pattern: "thunderbird".to_string(),
+            style: "professional email".to_string(),
+        },
+        ToneRule {
+            app_pattern: "discord".to_string(),
+            style: "casual, informal chat message".to_string(),
+        },
+    ]
 }
 
 fn default_model() -> String {
@@ -825,6 +858,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_post_process_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_command_shortcut = "option+ctrl+space";
+    #[cfg(not(target_os = "macos"))]
+    let default_command_shortcut = "ctrl+alt+space";
+
+    bindings.insert(
+        "command_mode".to_string(),
+        ShortcutBinding {
+            id: "command_mode".to_string(),
+            name: "Command Mode".to_string(),
+            description: "Applies your spoken instruction to the selected text.".to_string(),
+            default_binding: default_command_shortcut.to_string(),
+            current_binding: default_command_shortcut.to_string(),
+        },
+    );
     bindings.insert(
         "cancel".to_string(),
         ShortcutBinding {
@@ -894,6 +942,8 @@ pub fn get_default_settings() -> AppSettings {
         extra_recording_buffer_ms: 0,
         vad_enabled: default_vad_enabled(),
         overlay_style: default_overlay_style(),
+        tones_enabled: default_tones_enabled(),
+        tones: default_tones(),
     }
 }
 
