@@ -476,6 +476,17 @@ pub struct AppSettings {
     pub tones_enabled: bool,
     #[serde(default = "default_tones")]
     pub tones: Vec<ToneRule>,
+    /// Hands-free trigger: when enabled, a background listener starts a
+    /// transcription whenever the wake word is spoken, and stops it after
+    /// trailing silence.
+    #[serde(default)]
+    pub wake_word_enabled: bool,
+    #[serde(default = "default_wake_word")]
+    pub wake_word: String,
+}
+
+fn default_wake_word() -> String {
+    "undertone".to_string()
 }
 
 fn default_tones_enabled() -> bool {
@@ -873,6 +884,21 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_command_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_web_search_shortcut = "option+ctrl+g";
+    #[cfg(not(target_os = "macos"))]
+    let default_web_search_shortcut = "ctrl+alt+g";
+
+    bindings.insert(
+        "web_search".to_string(),
+        ShortcutBinding {
+            id: "web_search".to_string(),
+            name: "Web Search".to_string(),
+            description: "Searches Google for whatever you say.".to_string(),
+            default_binding: default_web_search_shortcut.to_string(),
+            current_binding: default_web_search_shortcut.to_string(),
+        },
+    );
     bindings.insert(
         "cancel".to_string(),
         ShortcutBinding {
@@ -944,6 +970,8 @@ pub fn get_default_settings() -> AppSettings {
         overlay_style: default_overlay_style(),
         tones_enabled: default_tones_enabled(),
         tones: default_tones(),
+        wake_word_enabled: false,
+        wake_word: default_wake_word(),
     }
 }
 

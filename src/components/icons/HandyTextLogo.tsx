@@ -1,3 +1,4 @@
+/* eslint-disable i18next/no-literal-string -- brand wordmark, not UI copy */
 import React from "react";
 
 // Undertone wordmark: a small soundwave mark plus lowercase wordmark.

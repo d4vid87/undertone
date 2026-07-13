@@ -53,6 +53,7 @@ pub trait ShortcutAction: Send + Sync {
 struct TranscribeAction {
     post_process: bool,
     command_mode: bool,
+    web_search: bool,
 }
 
 /// Field name for structured output JSON schema
@@ -687,6 +688,7 @@ impl ShortcutAction for TranscribeAction {
         let binding_id = binding_id.to_string(); // Clone binding_id for the async task
         let post_process = self.post_process;
         let command_mode = self.command_mode;
+        let web_search = self.web_search;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -832,6 +834,22 @@ impl ShortcutAction for TranscribeAction {
                             if processed.final_text.is_empty() {
                                 utils::hide_recording_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
+                            } else if web_search {
+                                let query = processed
+                                    .final_text
+                                    .trim()
+                                    .trim_end_matches(['.', '!', '?'])
+                                    .to_string();
+                                let url = format!(
+                                    "https://www.google.com/search?q={}",
+                                    urlencoding::encode(&query)
+                                );
+                                if let Err(e) = tauri_plugin_opener::open_url(&url, None::<String>)
+                                {
+                                    error!("Failed to open web search: {}", e);
+                                }
+                                utils::hide_recording_overlay(&ah);
+                                change_tray_icon(&ah, TrayIconState::Idle);
                             } else {
                                 let ah_clone = ah.clone();
                                 let paste_time = Instant::now();
@@ -956,6 +974,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             command_mode: false,
+            web_search: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -963,6 +982,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: true,
             command_mode: false,
+            web_search: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -970,6 +990,15 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
         Arc::new(TranscribeAction {
             post_process: false,
             command_mode: true,
+            web_search: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "web_search".to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            command_mode: false,
+            web_search: true,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(

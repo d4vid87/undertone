@@ -13,7 +13,9 @@ Undertone is a fork of the excellent [Handy](https://github.com/cjpais/Handy) by
 
 - **AI cleanup** — filler words removed, punctuation fixed, numbers formatted, using a local LLM. Fully optional: without a configured LLM you get raw Whisper output.
 - **Tones** — Undertone detects the active application and adjusts the style hint sent to the LLM: casual for Slack/Discord, professional for email. Configurable app-pattern → style rules.
-- **Command Mode** — select text anywhere, hold the command hotkey, and speak an instruction ("make this more concise", "rewrite as a bullet list"). The selection is replaced with the edited text.
+- **Command Mode** — select text anywhere, press the command hotkey, and speak an instruction ("make this more concise", "rewrite as a bullet list"). The selection is replaced with the edited text.
+- **Wake word** — fully hands-free: say a configurable wake word (default "undertone") to start dictating, pause for a couple of seconds to stop. No hotkey needed.
+- **Voice web search** — press the web search hotkey (default `Ctrl+Alt+G`), say your query, and it opens in your browser as a Google search.
 - Everything Handy already does: fully offline transcription (Whisper Small→Large, Parakeet V3, GPU-accelerated), push-to-talk or toggle, VAD silence filtering, custom vocabulary, transcription history, tray app — on Windows and Linux (macOS inherited from Handy, untested here).
 
 ## Privacy
@@ -26,7 +28,7 @@ Undertone is a fork of the excellent [Handy](https://github.com/cjpais/Handy) by
 
 1. Grab a build from the [releases page](https://github.com/d4vid87/undertone/releases) (`.deb`/`.rpm`/AppImage for Linux, NSIS installer for Windows).
 2. Launch, pick a transcription model in onboarding (Whisper Turbo recommended with a GPU).
-3. Dictate: hold the transcribe hotkey (default `Ctrl+Space`), speak, release.
+3. Dictate: press the transcribe hotkey (default `Ctrl+Space`), speak, press it again to stop. Prefer hold-to-record? Enable "Push To Talk" in settings.
 
 ### Enable the AI layer (optional, recommended)
 
@@ -39,7 +41,8 @@ ollama pull qwen2.5:3b
 Then in Undertone settings → Post-Processing: enable it, choose the **Custom** provider (already pointing at Ollama), select `qwen2.5:3b`, and dictate with the post-process hotkey (default `Ctrl+Shift+Space`).
 
 - **Tones** are on by default (Slack/Discord → casual, Thunderbird → professional). Edit the rules in settings storage; a settings UI is on the roadmap.
-- **Command Mode**: select text, hold `Ctrl+Alt+Space`, speak an instruction, release.
+- **Command Mode**: select text, press `Ctrl+Alt+Space`, speak an instruction, press again.
+- **Wake word**: enable it in General settings and set your phrase — dictation starts when you say it and stops after ~2 s of silence.
 
 ## Platform notes
 

@@ -22,6 +22,7 @@ mod transcription_coordinator;
 mod tray;
 mod tray_i18n;
 mod utils;
+mod wake_word;
 
 pub use cli::CliArgs;
 #[cfg(debug_assertions)]
@@ -206,6 +207,9 @@ fn initialize_core_logic(app_handle: &AppHandle) {
     // The frontend is responsible for calling the `initialize_shortcuts` command
     // after permissions are confirmed (on macOS) or after onboarding completes.
     // This matches the pattern used for Enigo initialization.
+
+    // Hands-free wake word listener (no-op until enabled in settings).
+    wake_word::spawn(app_handle.clone());
 
     #[cfg(unix)]
     let signals = Signals::new([SIGUSR1, SIGUSR2]).unwrap();
@@ -556,6 +560,8 @@ pub fn run(cli_args: CliArgs) {
             shortcut::change_binding,
             shortcut::reset_binding,
             shortcut::change_ptt_setting,
+            shortcut::change_wake_word_enabled_setting,
+            shortcut::change_wake_word_setting,
             shortcut::change_audio_feedback_setting,
             shortcut::change_audio_feedback_volume_setting,
             shortcut::change_sound_theme_setting,

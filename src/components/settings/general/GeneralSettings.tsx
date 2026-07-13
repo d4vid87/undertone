@@ -11,6 +11,7 @@ import { useSettings } from "../../../hooks/useSettings";
 import { VolumeSlider } from "../VolumeSlider";
 import { MuteWhileRecording } from "../MuteWhileRecording";
 import { ModelSettingsCard } from "./ModelSettingsCard";
+import { WakeWord } from "../WakeWord";
 
 export const GeneralSettings: React.FC = () => {
   const { t } = useTranslation();
@@ -22,7 +23,9 @@ export const GeneralSettings: React.FC = () => {
       <SettingsGroup title={t("settings.general.title")}>
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <ShortcutInput shortcutId="command_mode" grouped={true} />
+        <ShortcutInput shortcutId="web_search" grouped={true} />
         <PushToTalk descriptionMode="tooltip" grouped={true} />
+        <WakeWord descriptionMode="tooltip" grouped={true} />
         {/* Cancel shortcut is hidden with push-to-talk (release key cancels) and on Linux (dynamic shortcut instability) */}
         {!isLinux && !pushToTalk && (
           <ShortcutInput shortcutId="cancel" grouped={true} />

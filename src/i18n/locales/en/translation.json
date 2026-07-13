@@ -182,6 +182,10 @@
           "command_mode": {
             "name": "Command Mode",
             "description": "Applies your spoken instruction to the selected text."
+          },
+          "web_search": {
+            "name": "Web Search",
+            "description": "Searches Google for whatever you say."
           }
         },
         "errors": {
@@ -200,6 +204,13 @@
       "pushToTalk": {
         "label": "Push To Talk",
         "description": "Hold to record, release to stop"
+      },
+      "wakeWord": {
+        "label": "Wake Word",
+        "description": "Hands-free: start dictation by saying the wake word, stop by pausing for a couple of seconds.",
+        "wordLabel": "Wake Word Phrase",
+        "wordDescription": "The word or phrase that starts a dictation when spoken.",
+        "placeholder": "undertone"
       }
     },
     "models": {
