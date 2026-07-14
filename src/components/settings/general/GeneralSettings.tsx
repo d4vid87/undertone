@@ -24,6 +24,7 @@ export const GeneralSettings: React.FC = () => {
         <ShortcutInput shortcutId="transcribe" grouped={true} />
         <ShortcutInput shortcutId="command_mode" grouped={true} />
         <ShortcutInput shortcutId="web_search" grouped={true} />
+        <ShortcutInput shortcutId="system_command" grouped={true} />
         <PushToTalk descriptionMode="tooltip" grouped={true} />
         <WakeWord descriptionMode="tooltip" grouped={true} />
         {/* Cancel shortcut is hidden with push-to-talk (release key cancels) and on Linux (dynamic shortcut instability) */}

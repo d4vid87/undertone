@@ -54,6 +54,7 @@ struct TranscribeAction {
     post_process: bool,
     command_mode: bool,
     web_search: bool,
+    system_command: bool,
 }
 
 /// Field name for structured output JSON schema
@@ -689,6 +690,7 @@ impl ShortcutAction for TranscribeAction {
         let post_process = self.post_process;
         let command_mode = self.command_mode;
         let web_search = self.web_search;
+        let system_command = self.system_command;
         let cancel_generation = rm.cancel_generation();
 
         tauri::async_runtime::spawn(async move {
@@ -834,6 +836,22 @@ impl ShortcutAction for TranscribeAction {
                             if processed.final_text.is_empty() {
                                 utils::hide_recording_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
+                            } else if system_command {
+                                if let Some(cmd) =
+                                    crate::system_command::parse(&processed.final_text)
+                                {
+                                    crate::system_command::execute(cmd);
+                                    utils::hide_recording_overlay(&ah);
+                                    change_tray_icon(&ah, TrayIconState::Idle);
+                                } else {
+                                    // Not a recognized command — paste as dictation.
+                                    paste_final_text(
+                                        &ah,
+                                        processed.final_text,
+                                        Arc::clone(&rm),
+                                        cancel_generation,
+                                    );
+                                }
                             } else if web_search {
                                 let query = processed
                                     .final_text
@@ -851,36 +869,12 @@ impl ShortcutAction for TranscribeAction {
                                 utils::hide_recording_overlay(&ah);
                                 change_tray_icon(&ah, TrayIconState::Idle);
                             } else {
-                                let ah_clone = ah.clone();
-                                let paste_time = Instant::now();
-                                let final_text = processed.final_text;
-                                let rm_for_paste = Arc::clone(&rm);
-                                ah.run_on_main_thread(move || {
-                                    if rm_for_paste.was_cancelled_since(cancel_generation) {
-                                        debug!("Transcription operation cancelled before paste");
-                                        utils::hide_recording_overlay(&ah_clone);
-                                        change_tray_icon(&ah_clone, TrayIconState::Idle);
-                                        return;
-                                    }
-
-                                    match utils::paste(final_text, ah_clone.clone()) {
-                                        Ok(()) => debug!(
-                                            "Text pasted successfully in {:?}",
-                                            paste_time.elapsed()
-                                        ),
-                                        Err(e) => {
-                                            error!("Failed to paste transcription: {}", e);
-                                            let _ = ah_clone.emit("paste-error", ());
-                                        }
-                                    }
-                                    utils::hide_recording_overlay(&ah_clone);
-                                    change_tray_icon(&ah_clone, TrayIconState::Idle);
-                                })
-                                .unwrap_or_else(|e| {
-                                    error!("Failed to run paste on main thread: {:?}", e);
-                                    utils::hide_recording_overlay(&ah);
-                                    change_tray_icon(&ah, TrayIconState::Idle);
-                                });
+                                paste_final_text(
+                                    &ah,
+                                    processed.final_text,
+                                    Arc::clone(&rm),
+                                    cancel_generation,
+                                );
                             }
                         }
                         Err(err) => {
@@ -966,6 +960,40 @@ impl ShortcutAction for TestAction {
     }
 }
 
+/// Paste transcribed text into the focused app, then tear down overlay/tray.
+fn paste_final_text(
+    ah: &AppHandle,
+    final_text: String,
+    rm: Arc<AudioRecordingManager>,
+    cancel_generation: u64,
+) {
+    let ah_clone = ah.clone();
+    let paste_time = Instant::now();
+    ah.run_on_main_thread(move || {
+        if rm.was_cancelled_since(cancel_generation) {
+            debug!("Transcription operation cancelled before paste");
+            utils::hide_recording_overlay(&ah_clone);
+            change_tray_icon(&ah_clone, TrayIconState::Idle);
+            return;
+        }
+
+        match utils::paste(final_text, ah_clone.clone()) {
+            Ok(()) => debug!("Text pasted successfully in {:?}", paste_time.elapsed()),
+            Err(e) => {
+                error!("Failed to paste transcription: {}", e);
+                let _ = ah_clone.emit("paste-error", ());
+            }
+        }
+        utils::hide_recording_overlay(&ah_clone);
+        change_tray_icon(&ah_clone, TrayIconState::Idle);
+    })
+    .unwrap_or_else(|e| {
+        error!("Failed to run paste on main thread: {:?}", e);
+        utils::hide_recording_overlay(ah);
+        change_tray_icon(ah, TrayIconState::Idle);
+    });
+}
+
 // Static Action Map
 pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::new(|| {
     let mut map = HashMap::new();
@@ -975,6 +1003,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
             post_process: false,
             command_mode: false,
             web_search: false,
+            system_command: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -983,6 +1012,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
             post_process: true,
             command_mode: false,
             web_search: false,
+            system_command: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -991,6 +1021,7 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
             post_process: false,
             command_mode: true,
             web_search: false,
+            system_command: false,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(
@@ -999,6 +1030,16 @@ pub static ACTION_MAP: Lazy<HashMap<String, Arc<dyn ShortcutAction>>> = Lazy::ne
             post_process: false,
             command_mode: false,
             web_search: true,
+            system_command: false,
+        }) as Arc<dyn ShortcutAction>,
+    );
+    map.insert(
+        "system_command".to_string(),
+        Arc::new(TranscribeAction {
+            post_process: false,
+            command_mode: false,
+            web_search: false,
+            system_command: true,
         }) as Arc<dyn ShortcutAction>,
     );
     map.insert(

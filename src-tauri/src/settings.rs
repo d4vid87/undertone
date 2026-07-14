@@ -899,6 +899,22 @@ pub fn get_default_settings() -> AppSettings {
             current_binding: default_web_search_shortcut.to_string(),
         },
     );
+    #[cfg(target_os = "macos")]
+    let default_system_command_shortcut = "option+ctrl+y";
+    #[cfg(not(target_os = "macos"))]
+    let default_system_command_shortcut = "ctrl+alt+y";
+
+    bindings.insert(
+        "system_command".to_string(),
+        ShortcutBinding {
+            id: "system_command".to_string(),
+            name: "System Command".to_string(),
+            description: "Runs spoken system commands: open apps, lock, sleep, shutdown, restart."
+                .to_string(),
+            default_binding: default_system_command_shortcut.to_string(),
+            current_binding: default_system_command_shortcut.to_string(),
+        },
+    );
     bindings.insert(
         "cancel".to_string(),
         ShortcutBinding {

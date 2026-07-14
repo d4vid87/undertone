@@ -17,6 +17,7 @@ pub mod portable;
 mod settings;
 mod shortcut;
 mod signal_handle;
+mod system_command;
 mod tones;
 mod transcription_coordinator;
 mod tray;

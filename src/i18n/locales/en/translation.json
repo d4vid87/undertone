@@ -186,6 +186,10 @@
           "web_search": {
             "name": "Web Search",
             "description": "Searches Google for whatever you say."
+          },
+          "system_command": {
+            "name": "System Command",
+            "description": "Runs spoken system commands: open apps, lock, sleep, shutdown, restart."
           }
         },
         "errors": {

@@ -16,6 +16,7 @@ Undertone is a fork of the excellent [Handy](https://github.com/cjpais/Handy) by
 - **Command Mode** — select text anywhere, press the command hotkey, and speak an instruction ("make this more concise", "rewrite as a bullet list"). The selection is replaced with the edited text.
 - **Wake word** — fully hands-free: say a configurable wake word (default "undertone") to start dictating, pause for a couple of seconds to stop. No hotkey needed.
 - **Voice web search** — press the web search hotkey (default `Ctrl+Alt+G`), say your query, and it opens in your browser as a Google search.
+- **System commands** — press the system command hotkey (default `Ctrl+Alt+Y`) and say "open firefox", "lock the screen", "sleep", "shut down the computer", or "restart". Deterministic keyword matching (never an LLM) so a mis-transcription can't reboot your machine; unrecognized speech is pasted as normal dictation.
 - Everything Handy already does: fully offline transcription (Whisper Small→Large, Parakeet V3, GPU-accelerated), push-to-talk or toggle, VAD silence filtering, custom vocabulary, transcription history, tray app — on Windows and Linux (macOS inherited from Handy, untested here).
 
 ## Privacy
